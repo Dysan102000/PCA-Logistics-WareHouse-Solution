@@ -1,0 +1,141 @@
+﻿@page "/shipments"
+@using PCA_Logistics_WareHouse_Web_App.Data
+@inherits PCA_Logistics_WareHouse_Web_App.Components.Pages.Shipments
+
+<PageTitle>Shipments | PCA Logistics</PageTitle>
+
+@* --- INHERIT STYLES FROM GRN SCANNING FOR CONSISTENCY --- *@
+<style>
+    .btn-pca-primary {
+        background-color: #183B7D; /* PCA Dark Blue */
+        border-color: #183B7D;
+        color: white;
+    }
+
+        .btn-pca-primary:hover {
+            background-color: #122c5e;
+            border-color: #122c5e;
+        }
+
+    .text-pca-primary {
+        color: #183B7D;
+    }
+
+    .bg-pca-accent {
+        background-color: #AEC435 !important; /* PCA Olive Green */
+    }
+</style>
+
+<div class="shipments-container container">
+    <h2 class="mb-4">
+        🚚 Shipments
+        <button class="btn btn-pca-primary btn-sm" @onclick="LoadShipmentData">🔄 Refresh Data</button>
+    </h2>
+
+    @* --- SHIPMENT SUMMARY SECTION (Impressive Dashboard) --- *@
+    <h4 class="mt-5 mb-3 text-pca-primary">📦 Shipment Overview</h4>
+    <div class="row mb-5">
+        <div class="col-md-3">
+            <div class="card text-white bg-pca-accent shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Total Shipments</h5>
+                    <p class="card-text fs-2">@(AllShipments?.Count ?? 0)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-pca-accent shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">Total Boxes in Stock</h5>
+                    <p class="card-text fs-2">@(AllShipments?.Sum(s => s.BoxCount) ?? 0)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-primary shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-pca-primary">Ready for Dispatch</h5>
+                    <p class="card-text fs-2 text-primary">@(AllShipments?.Count(s => s.IsCargoStoredSecurely) ?? 0)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-warning">Dangerous Goods</h5>
+                    <p class="card-text fs-2 text-warning">@(AllShipments?.Count(s => s.IsDangerousGoods) ?? 0)</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    @* --- END SUMMARY SECTION --- *@
+
+    @* --- SHIPMENT LIST & FILTERING --- *@
+    <h4 class="mt-5 mb-3 text-pca-primary">📜 Detailed Shipment List</h4>
+
+    <div class="mb-3 d-flex justify-content-end">
+        <div class="input-group" style="max-width: 300px;">
+            <span class="input-group-text">🔍</span>
+            <input type="text" class="form-control" placeholder="Filter by Receipt No. or Driver"
+                   @bind-value="SearchTerm" @bind-value:event="oninput" />
+        </div>
+    </div>
+
+    <div class="table-responsive mb-4">
+        @if (FilteredShipments == null)
+        {
+            <p class="text-center text-muted">Loading shipment data...</p>
+        }
+        else if (!FilteredShipments.Any())
+        {
+            <p class="text-center text-muted">No shipments found matching the criteria. Click Refresh to load data.</p>
+        }
+        else
+        {
+            <table class="table table-bordered table-striped">
+                <thead class="bg-pca-accent text-white">
+                    <tr>
+                        <th>Receipt No.</th>
+                        <th>Arrival Date</th>
+                        <th>Received From</th>
+                        <th>Received For</th>
+                        <th>Driver</th>
+                        <th>Boxes</th>
+                        <th>Total Weight (kg)</th>
+                        <th>Status</th>
+                        <th style="width: 50px;">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var shipment in FilteredShipments)
+                    {
+                        <tr>
+                            <td><strong>@shipment.ReceiptNo</strong></td>
+                            <td>@shipment.ArrivalTimestamp?.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@shipment.ReceivedFrom</td>
+                            <td>@shipment.ReceivedFor</td>
+                            <td>@shipment.DriverName</td>
+                            <td>@shipment.BoxCount</td>
+                            <td>@shipment.TotalWeightKg</td>
+                            <td>
+                                @if (shipment.IsCargoStoredSecurely)
+                                {
+                                    <span class="badge bg-success">SECURED & READY</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">INCOMPLETE GRN</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @* Placeholder for a future details page/modal *@
+                                <button class="btn btn-info btn-sm" title="View Details">i</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+    @* --- END SHIPMENT LIST --- *@
+</div>

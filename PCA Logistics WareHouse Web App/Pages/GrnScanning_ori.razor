@@ -1,0 +1,512 @@
+﻿@page "/grnscanning_0"
+@using PCA_Logistics_WareHouse_Web_App.Data
+@using System.IO;
+@using System.Text.Json;
+@using Microsoft.AspNetCore.Components.Forms;
+@inject IJSRuntime JSRuntime
+@inject IWebHostEnvironment WebHostEnvironment
+
+<PageTitle>GRN Scanning | PCA Logistics</PageTitle>
+
+@* We include the CSS styles here for easy reference and component-level scope. *@
+<style>
+    .btn-pca-primary {
+        background-color: #183B7D; /* PCA Dark Blue */
+        border-color: #183B7D;
+        color: white;
+    }
+
+        .btn-pca-primary:hover {
+            background-color: #122c5e;
+            border-color: #122c5e;
+        }
+
+    .text-pca-primary {
+        color: #183B7D;
+    }
+
+    .bg-pca-accent {
+        background-color: #AEC435 !important; /* PCA Olive Green */
+    }
+</style>
+
+<div class="grn-processing-container container">
+    <!--<button class="btn btn-pca-primary" @onclick="DevHydrateFields">📦 Auto Fill</button>-->
+    <h2 class="mb-4">
+        📦 GRN Scanning &nbsp;
+        @* <button class="btn btn-pca-primary btn-sm" @onclick="SaveGrnData">💾 Save Data</button> *@
+        <button class="btn btn-pca-primary btn-sm" @onclick="DevHydrateFields">📦 Auto Fill</button>
+    </h2>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-pca-accent text-white">
+            <h4 class="m-0">1. Add GRN Receipt Number</h4>
+        </div>
+        <div class="card-body">
+            <div class="input-group input-group-lg">
+                <input id="inReceiptNo" type="text" class="form-control"
+                       placeholder="Enter Receipt No."
+                       @bind="@grnModel.ReceiptNo"
+                       @onkeyup="HandleGrnIdInput"
+                       @ref="inputElement" 
+                       aria-label="GRN Receipt Number Input" />
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mt-5 mb-3 text-pca-primary">2. GRN Details</h4>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card border-primary h-100">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Received From</label>
+                        <input type="text" class="form-control" @bind="@grnModel.ReceivedFrom" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Received For</label>
+                        <input type="text" class="form-control" @bind="@grnModel.ReceivedFor" />
+                    </div>
+                    <hr />
+                    <div class="mb-3">
+                        <label for="totalBoxes" class="form-label fw-bold">T. Boxes</label>
+                        <input id="totalBoxes" type="number" class="form-control" @bind="@grnModel.BoxCount" />
+                    </div>
+                    <div class="mb-0">
+                        <label for="totalWeight" class="form-label fw-bold">T. Weight (kg)</label>
+                        <input id="totalWeight" type="number" class="form-control" @bind="@grnModel.TotalWeightKg" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card border-primary h-100">
+                <div class="card-header">Driver & Shipment Info</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="">Driver</label>
+                        <input id="inDriverName" type="text" class="form-control" placeholder="Driver Name" @bind="@grnModel.DriverName" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Identity No.</label>
+                        <input type="text" class="form-control" placeholder="ID Number" @bind="@grnModel.DriverIdNo" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Truck Reg.</label>
+                        <input type="text" class="form-control" placeholder="Truck Reg. No." @bind="@grnModel.TruckRegNo" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Time Arrived.</label>
+                        <input type="datetime-local" class="form-control" placeholder="Arrival Time" @bind="@grnModel.ArrivalTimestamp" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="mt-5 mb-3 text-pca-primary">3. Product and Condition Checks</h4>
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered table-striped">
+            <thead class="bg-pca-accent text-white">
+                <tr>
+                    <th>Product</th>
+                    <th>Del No</th>
+                    <th>Qty DN</th>
+                    <th>Qty Rec.</th>
+                    <th>Temp (°C)</th>
+                    <th style="width: 50px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in grnModel.ProductLines)
+                {
+                    <tr>
+                        <td><input type="text" class="form-control" @bind="@line.Product" placeholder="Product Name" /></td>
+                        <td><input type="text" class="form-control" @bind="@line.DeliveryNoteNo" placeholder="DN #" /></td>
+                        <td><input type="number" class="form-control" @bind="@line.QuantityOnDeliveryNote" /></td>
+                        <td><input type="number" class="form-control" @bind="@line.QuantityReceived" /></td>
+                        <td><input type="number" class="form-control" @bind="@line.Temperature" /></td>
+
+                        @* Remove Button *@
+                        <td class="text-center">
+                            <button class="btn btn-danger btn-sm" @onclick="@(() => RemoveProductLine(line))" title="Remove line">
+                                X
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+            @* Footer to hold the Add button *@
+            <tfoot>
+                <tr>
+                    <td colspan="6" class="text-end">
+                        <button type="button" class="btn btn-pca-primary" @onclick="AddProductLine">
+                            + Add Product Line
+                        </button>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h4 class="mt-5 mb-3 text-pca-primary">4. AVSEC Security Checks</h4>
+    <div class="row mb-5">
+        <div class="col-md-6">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="grnModel.IsDriversIdentityChecked" id="check1">
+                <label class="form-check-label" for="check1">
+                    Drivers' identity checked upon receipt of cargo.
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="grnModel.IsVehicleChecked" id="check2">
+                <label class="form-check-label" for="check2">
+                    Vehicle checked for any tampering or unlawful interference.
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="grnModel.AreDeliveryDocumentsChecked" id="check3">
+                <label class="form-check-label" for="check3">
+                    Delivery documents checked against contents of cargo.
+                </label>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="grnModel.IsKnownConsignorChecked" id="check4">
+                <label class="form-check-label" for="check4">
+                    Checked for Known Consignor / Regulated Agent status.
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="grnModel.IsCargoStoredSecurely" id="check5">
+                <label class="form-check-label" for="check5">
+                    Cargo stored in secured area after screening.
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="grnModel.IsDangerousGoods" id="check6">
+                <label class="form-check-label" for="check6">
+                    Dangerous Goods (Confirm YES/NO).
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center">
+        <button class="btn btn-success btn-lg" @onclick="FinalizeGrnProcessing">
+            ✅ Finalize GRN & Accept Goods
+        </button>
+        <p class="text-muted mt-2">
+            All checks and quantities must be confirmed before finalizing.
+        </p>
+    </div>
+
+</div>
+
+@code {
+
+    private string grnIdInput = string.Empty;
+    private string grnReceivedFrom = string.Empty;
+    private ElementReference inputElement;
+    private bool isFirstRender = true;
+
+    // private bool grnLoaded = true;
+    // private bool showValidationMessage = false;
+
+    // We can now use the model from your separate C# file (PCA_Logistics_WareHouse_Web_App.Data)
+    private GrnModel grnModel = new GrnModel();
+    private GrnProductLine grnProdLine = new();
+
+    // =========================================================
+    // UI Logic and Methods
+    // =========================================================
+    public GrnScanning_ori()
+    {
+        // LoadGrnDetails();
+        grnModel.ProductLines = new();
+        // DevHydrateFields();
+    }
+
+    protected override void OnInitialized()
+    {
+        // Check if the timestamp is null (i.e., this is a brand new GRN being created)
+        // If it's a new GRN, set the arrival timestamp to the current time.
+        if (grnModel.ArrivalTimestamp == null)
+        {
+            grnModel.ArrivalTimestamp = DateTime.Now;
+        }
+
+        // If you have parameter-based loading (like in GrnProcessing.razor),
+        // that logic would go here, but for GrnScanning (new receipts),
+        // setting the timestamp is usually the only action needed.
+
+        // Load all existing GRN records for validation/comparison
+        //allGrnRecords = LoadAllGrnRecords();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && isFirstRender)
+        {
+            // We use JSRuntime to call the focus() method on the input element.
+            await JSRuntime.InvokeVoidAsync("focusElement", inputElement);
+
+            // Set the flag to false so this code doesn't run again on subsequent re-renders.
+            isFirstRender = false;
+        }
+    }
+
+    private void DevHydrateFields()
+    {
+        #region SampleDev Input
+        GrnModel hydrateModel = new();
+        hydrateModel.ReceiptNo = "16243";
+        hydrateModel.ReceivedFrom = "Schoonbee";
+        hydrateModel.ReceivedFor = "GREEN SOUTH";
+        hydrateModel.BoxCount = 625;
+        hydrateModel.TotalWeightKg = 4122;
+        hydrateModel.DriverName = "Musa Sokhela";
+        hydrateModel.DriverIdNo = "8208286417085";
+        hydrateModel.TruckRegNo = "BM 31 GKZN";
+        hydrateModel.ArrivalTimestamp = DateTime.Now;//new DateTime(2025, 11, 20, 15, 18, 0);
+        hydrateModel.ProductLines = new();
+
+        GrnProductLine productLine = new();
+        productLine.Product = "Grapes";
+        productLine.DeliveryNoteNo = "106703";
+        productLine.QuantityOnDeliveryNote = 5;
+        productLine.QuantityReceived = 5;
+        productLine.Temperature = 9.7m;
+
+        hydrateModel.IsDriversIdentityChecked = true;
+        hydrateModel.IsVehicleChecked = true;
+        hydrateModel.AreDeliveryDocumentsChecked = true;
+        hydrateModel.IsKnownConsignorChecked = true;
+        hydrateModel.IsCargoStoredSecurely = true;
+        hydrateModel.IsDangerousGoods = false;
+
+        hydrateModel.ProductLines.Add(productLine);
+        #endregion
+        grnModel = hydrateModel;
+        // InputText inputText = hydrateModel.ReceiptNo;
+        // ((InputText)inReceiptNo).Value = hydrateModel.ReceiptNo;
+    }
+
+    private void LoadGrnDetails()
+    {
+        // if (string.IsNullOrWhiteSpace(grnIdInput))
+        // {
+        //     showValidationMessage = true;
+        //     grnLoaded = false;
+        //     return;
+        // }
+
+        // --- SIMULATED DATA LOAD (using data from your PDF) ---
+        grnModel = new GrnModel
+        {
+            ReceiptNo = grnIdInput.Trim(),
+            ReceivedFrom = "Schoonbee",
+            ReceivedFor = "GREEN SOUTH",
+            BoxCount = 625,
+            TotalWeightKg = 4122,
+            ArrivalTimestamp = new DateTime(2025, 11, 25, 15, 18, 0),
+            DriverName = "Musa Sokhela",
+            DriverIdNo = "8208286417085",
+            TruckRegNo = "BM 31 GKZN",
+
+            // Simulating a loaded product line
+            ProductLines = new List<GrnProductLine>
+            {
+                new GrnProductLine
+                {
+                    Product = "GRAPES",
+                    DeliveryNoteNo = "106203 05",
+                    QuantityOnDeliveryNote = 5,
+                    QuantityReceived = 5,
+                    Dims = "HIGH CUBE PALLET",
+                    Temperature = 9.7M
+                }
+            },
+
+            // Simulating the AVSEC checks as they appear on the document
+            IsDriversIdentityChecked = true,
+            IsVehicleChecked = true,
+            AreDeliveryDocumentsChecked = true,
+            IsKnownConsignorChecked = true,
+            IsCargoStoredSecurely = true,
+            IsDangerousGoods = false,
+        };
+
+        // --- END SIMULATED DATA LOAD ---
+
+        // grnLoaded = true;
+        // showValidationMessage = false;
+    }
+
+    private void HandleGrnIdInput(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            ValidateGrnDetails();
+        }
+    }
+
+    private void ValidateGrnDetails()
+    {
+        // if (string.IsNullOrWhiteSpace(grnIdInput))
+        // {
+        //     showValidationMessage = true;
+        //     grnLoaded = false;
+        //     return;
+        // }
+
+        // --- SIMULATED DATA LOAD (using data from your PDF) ---
+        grnModel = new GrnModel
+        {
+            ReceiptNo = grnIdInput.Trim(),
+            ReceivedFrom = "Schoonbee",
+            ReceivedFor = "GREEN SOUTH",
+            BoxCount = 625,
+            TotalWeightKg = 4122,
+            ArrivalTimestamp = new DateTime(2025, 11, 25, 15, 18, 0),
+            DriverName = "Musa Sokhela",
+            DriverIdNo = "8208286417085",
+            TruckRegNo = "BM 31 GKZN",
+
+            // Simulating a loaded product line
+            ProductLines = new List<GrnProductLine>
+            {
+                new GrnProductLine
+                {
+                    Product = "GRAPES",
+                    DeliveryNoteNo = "106203 05",
+                    QuantityOnDeliveryNote = 5,
+                    QuantityReceived = 5,
+                    Dims = "HIGH CUBE PALLET",
+                    Temperature = 9.7M
+                }
+            },
+
+            // Simulating the AVSEC checks as they appear on the document
+            IsDriversIdentityChecked = true,
+            IsVehicleChecked = true,
+            AreDeliveryDocumentsChecked = true,
+            IsKnownConsignorChecked = true,
+            IsCargoStoredSecurely = true,
+            IsDangerousGoods = false,
+        };
+
+        // --- END SIMULATED DATA LOAD ---
+
+        // grnLoaded = true;
+        // showValidationMessage = false;
+    }
+
+    private void FinalizeGrnProcessing()
+    {
+        bool allRequiredChecked = grnModel.IsDriversIdentityChecked 
+            && grnModel.IsVehicleChecked && grnModel.AreDeliveryDocumentsChecked 
+            && grnModel.IsKnownConsignorChecked && grnModel.IsCargoStoredSecurely;
+
+        if (!allRequiredChecked)
+        {
+            // In a real app, you'd use a modal/toast notification instead of Console.WriteLine
+            Console.WriteLine("ERROR: Not all AVSEC security checks have been confirmed.");
+            return;
+        }
+
+        // TODO: Implement actual database or API save logic here.
+        //grnModel.ReceiptNo = grnIdInput;
+        SaveGrnIfNotExist(grnModel);
+        Console.WriteLine($"GRN {grnModel.ReceiptNo} finalized and saved successfully!");
+
+        // Reset UI for next scan
+        grnIdInput = string.Empty;
+        // grnLoaded = false;
+
+        // Ensure the new model is initialized with the current time
+        grnModel = new GrnModel { ArrivalTimestamp = DateTime.Now };
+    }
+
+    private void SaveGrnIfNotExist(GrnModel pGrnToSave)
+    {
+        // Define the path to your GRN storage file.
+        // This file will be created next to your application's executable.
+        // In a real application, you might use IWebHostEnvironment to get a specific data path.
+        const string filePath = "GrnRecords.json";
+
+        try
+        {
+            // 1. Serialize the GRN model to a JSON string
+            // We use JsonSerializer.Serialize for this.
+            string jsonString = JsonSerializer.Serialize(pGrnToSave);
+
+            // 2. Write the JSON string to the file, appending a new line.
+            // Using File.AppendAllText ensures the file is created if it doesn't exist,
+            // and the data is added to the end. We use '.jsonl' (JSON Lines) format here
+            // where each line is a valid JSON object.
+            File.AppendAllText(filePath, jsonString + Environment.NewLine);
+
+            Console.WriteLine($"Successfully saved GRN {pGrnToSave.ReceiptNo} to {filePath}");
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions like file access errors
+            Console.WriteLine($"ERROR saving GRN {pGrnToSave.ReceiptNo}: {ex.Message}");
+            // In a real Blazor app, you would notify the user here.
+        }
+    }
+
+    
+
+    // Method to add a new empty line to the list
+    private void AddProductLine()
+    {
+        if (grnModel.ProductLines == null)
+        {
+            grnModel.ProductLines = new List<GrnProductLine>();
+        }
+
+        grnModel.ProductLines.Add(new GrnProductLine());
+    }
+
+    // Method to remove a specific line
+    private void RemoveProductLine(GrnProductLine line)
+    {
+        grnModel.ProductLines.Remove(line);
+    }
+
+    // Method to load all GRNs from the file (needed for lookup)
+    private List<GrnModel> LoadAllGrnRecords()
+    {
+        const string filePath = "GrnRecords.json";
+        List<GrnModel> recordsToReturn = new List<GrnModel>();
+
+        if (File.Exists(filePath))
+        {
+            try
+            {
+                string[] lines = File.ReadAllLines(filePath);
+
+                foreach (string line in lines)
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        GrnModel? grn = JsonSerializer.Deserialize<GrnModel>(line);
+                        if (grn != null)
+                        {
+                            recordsToReturn.Add(grn);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR loading GRN records: {ex.Message}");
+            }
+        }
+        return recordsToReturn;
+    }
+}

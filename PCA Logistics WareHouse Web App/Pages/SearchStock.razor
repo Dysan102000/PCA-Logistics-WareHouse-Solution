@@ -1,0 +1,238 @@
+﻿@page "/searchstock"
+@using PCA_Logistics_WareHouse_Web_App.Data
+@using System.Text.Json
+@using System.IO
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Search | PCA Logistics</PageTitle>
+
+<style>
+    .btn-pca-primary {
+        background-color: #183B7D; /* PCA Dark Blue */
+        border-color: #183B7D;
+        color: white;
+    }
+
+        .btn-pca-primary:hover {
+            background-color: #122c5e;
+            border-color: #122c5e;
+        }
+
+    .text-pca-primary {
+        color: #183B7D;
+    }
+
+    .bg-pca-accent {
+        background-color: #AEC435 !important; /* PCA Olive Green */
+    }
+
+    /* Add a style to indicate clickable rows */
+    .grn-row {
+        cursor: pointer;
+    }
+</style>
+
+<div class="grn-processing-container container">
+    <h2 class="mb-4">🔍 Search Stock</h2>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-pca-accent text-white">
+            <h4 class="m-0">1. Search GRN Receipt Number</h4>
+        </div>
+        <div class="card-body">
+            <div class="input-group input-group-lg">
+                <input id="inReceiptNo" type="text" class="form-control"
+                       placeholder="Enter Receipt No. to search, or leave blank for initial list"
+                       @bind="SearchTerm" 
+                       @bind:event="oninput" 
+                       @ref="inputElement" 
+                       aria-label="GRN Receipt Number Input" />
+                @* <button class="btn btn-pca-primary" @onclick="FilterGrns">
+                    <span class="oi oi-magnifying-glass" aria-hidden="true"></span> Search
+                </button> *@
+            </div>
+        </div>
+    </div>
+
+    @* ========================================================= *@
+    @* 2. Search Results Table *@
+    @* ========================================================= *@
+    <h4 class="mt-5 mb-3 text-pca-primary">2. GRN Search Results</h4>
+
+    <div class="table-responsive mb-4">
+        <table class="table table-bordered table-striped table-hover">
+            <thead class="bg-pca-accent text-white">
+                <tr>
+                    <th>Receipt No.</th>
+                    <th>Received From</th>
+                    <th>Received For</th>
+                    <th>Driver</th>
+                    <th>Truck Reg. No.</th>
+                    <th>Total Boxes</th>
+                    <th>Total Weight (kg)</th>
+                    <th>Arrival Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (filteredRecords.Any())
+                {
+                    @foreach (var grn in filteredRecords)
+                    {
+                        @* Make the entire row clickable to navigate to the details page *@
+                        <tr class="grn-row" @onclick="() => GoToGrnProcessing(grn.ReceiptNo)">
+                            <td>@grn.ReceiptNo</td>
+                            <td>@grn.ReceivedFrom</td>
+                            <td>@grn.ReceivedFor</td>
+                            <td>@grn.DriverName</td>
+                            <td>@grn.TruckRegNo</td>
+                            <td>@grn.BoxCount</td>
+                            <td>@grn.TotalWeightKg</td>
+                            <td>
+                                @(grn.ArrivalTimestamp.HasValue? grn.ArrivalTimestamp.Value.ToString("yyyy-MM-dd HH:mm") : "N/A")
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        @* Update colspan to match the new 8 columns *@
+                        <td colspan="8" class="text-center">
+                            @if (SearchTerm?.Length > 0)
+                            {
+                                <span>No GRN records found matching the search criteria.</span>
+                            }
+                            else
+                            {
+                                <span>No GRN records found in the file.</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+@code {
+    private GrnModel grnModel = new GrnModel();
+    private List<GrnModel> records = new();
+    private List<GrnModel> filteredRecords = new();
+    private const int InitialRecordsToShow = 10;
+    private ElementReference inputElement;
+    private bool isFirstRender = true;
+
+    // New helper property for live search binding
+    private string SearchTerm
+    {
+        get => grnModel.ReceiptNo;
+        set
+        {
+            // 1. Update the actual model property with the new input value
+            grnModel.ReceiptNo = value;
+
+            // 2. Immediately call the filtering method
+            // This runs your multi-field search logic every time a key is pressed.
+            FilterGrns();
+        }
+    }
+
+    // FIX: Move loading logic to OnInitialized to ensure data is fresh on every visit.
+    protected override Task OnInitializedAsync()
+    {
+        records = LoadAllGrnRecords();
+        FilterGrns();
+        return Task.CompletedTask;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && isFirstRender)
+        {
+            // We use JSRuntime to call the focus() method on the input element.
+            await JSRuntime.InvokeVoidAsync("focusElement", inputElement);
+
+            // Set the flag to false so this code doesn't run again on subsequent re-renders.
+            isFirstRender = false;
+        }
+    }
+
+    private void FilterGrns()
+    {
+        // Normalize the search term (trim it and convert to lower case for case-insensitive search)
+        string searchTerm = grnModel.ReceiptNo?.Trim().ToLower() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            // If the search box is empty, show the first 10 records, ordered by ReceiptNo descending
+            filteredRecords = records.OrderByDescending(g => g.ReceiptNo).Take(InitialRecordsToShow).ToList();
+        }
+        else
+        {
+            // Perform a multi-field search against all GRN records
+            filteredRecords = records
+                .Where(g =>
+                    // 1. Receipt No. (Existing)
+                    (g.ReceiptNo != null && g.ReceiptNo.ToLower().Contains(searchTerm)) ||
+
+                    // 2. Received From
+                    (g.ReceivedFrom != null && g.ReceivedFrom.ToLower().Contains(searchTerm)) ||
+
+                    // 3. Received For
+                    (g.ReceivedFor != null && g.ReceivedFor.ToLower().Contains(searchTerm)) ||
+
+                    // 4. Driver Name
+                    (g.DriverName != null && g.DriverName.ToLower().Contains(searchTerm)) ||
+
+                    // 5. Driver ID No.
+                    (g.DriverIdNo != null && g.DriverIdNo.ToLower().Contains(searchTerm)) ||
+
+                    // 6. Truck Registration Number
+                    (g.TruckRegNo != null && g.TruckRegNo.ToLower().Contains(searchTerm)) ||
+
+                    // 7. Time Arrived (Convert to formatted string for matching)
+                    (g.ArrivalTimestamp.HasValue && g.ArrivalTimestamp.Value.ToString("yyyy-MM-dd HH:mm").ToLower().Contains(searchTerm))
+                ).ToList();
+        }
+    }
+
+    // New method to navigate to the processing page with the GRN Receipt No.
+    private void GoToGrnProcessing(string receiptNo)
+    {
+        NavigationManager.NavigateTo($"/grnprocessing/{receiptNo}");
+    }
+
+    private List<GrnModel> LoadAllGrnRecords()
+    {
+        // Using the file path agreed upon in GrnScanning.razor
+        const string filePath = "GrnRecords.json";
+        List<GrnModel> recordsToReturn = new List<GrnModel>();
+
+        if (File.Exists(filePath))
+        {
+            try
+            {
+                string[] lines = File.ReadAllLines(filePath);
+
+                foreach (string line in lines)
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        GrnModel? grn = JsonSerializer.Deserialize<GrnModel>(line);
+                        if (grn != null)
+                        {
+                            recordsToReturn.Add(grn);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR loading GRN records: {ex.Message}");
+            }
+        }
+        return recordsToReturn;
+    }
+}

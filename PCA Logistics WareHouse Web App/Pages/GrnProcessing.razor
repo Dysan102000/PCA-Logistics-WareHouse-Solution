@@ -1,0 +1,263 @@
+﻿@page "/grnprocessing"
+@page "/grnprocessing/{ReceiptNo}"
+@using PCA_Logistics_WareHouse_Web_App.Data
+@using System.IO
+@using System.Text.Json
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+<PageTitle>Process GRN | PCA Logistics</PageTitle>
+
+<style>
+    .btn-pca-primary {
+        background-color: #183B7D; /* PCA Dark Blue */
+        border-color: #183B7D;
+        color: white;
+    }
+
+        .btn-pca-primary:hover {
+            background-color: #122c5e;
+            border-color: #122c5e;
+        }
+
+    .text-pca-primary {
+        color: #183B7D;
+    }
+
+    .bg-pca-accent {
+        background-color: #AEC435 !important; /* PCA Olive Green */
+    }
+</style>
+
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>🏗️ Process GRN: <span class="text-pca-primary">@ReceiptNo</span></h2>
+        <button class="btn btn-secondary" @onclick="NavigateBack">⬅ Back to Search</button>
+    </div>
+
+    @if (grnModel == null)
+    {
+        <div class="alert alert-info">Loading GRN details...</div>
+    }
+    else if (!foundRecord)
+    {
+        <div class="alert alert-warning">
+            <strong>GRN Not Found:</strong> No record found for Receipt No. '@ReceiptNo'.
+        </div>
+    }
+    else
+    {
+        @* --- 1. DOCUMENTS SECTION (Read-Only View) --- *@
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="m-0">📑 Attached Documents</h5>
+            </div>
+            <div class="card-body">
+                @if (grnModel.ScannedDocumentReferences != null && grnModel.ScannedDocumentReferences.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var fileName in grnModel.ScannedDocumentReferences)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>📄 @fileName</span>
+                                <span class="badge bg-success rounded-pill">Uploaded</span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No documents are attached to this GRN.</p>
+                }
+            </div>
+        </div>
+
+        @* --- 2. GRN DETAILS SECTION --- *@
+        <h4 class="mb-3 text-pca-primary">GRN Details</h4>
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card border-primary h-100">
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Received From</label>
+                            <input type="text" class="form-control" @bind="@grnModel.ReceivedFrom" />
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Received For</label>
+                            <input type="text" class="form-control" @bind="@grnModel.ReceivedFor" />
+                        </div>
+                        <hr />
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Total Boxes</label>
+                            <input type="number" class="form-control" @bind="@grnModel.BoxCount" />
+                        </div>
+                        <div class="mb-0">
+                            <label class="form-label fw-bold">Total Weight (kg)</label>
+                            <input type="number" class="form-control" @bind="@grnModel.TotalWeightKg" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card border-primary h-100">
+                    <div class="card-header">Driver & Shipment Info</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Driver Name</label>
+                                <input type="text" class="form-control" @bind="@grnModel.DriverName" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Identity No.</label>
+                                <input type="text" class="form-control" @bind="@grnModel.DriverIdNo" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Truck Reg.</label>
+                                <input type="text" class="form-control" @bind="@grnModel.TruckRegNo" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Time Arrived</label>
+                                <input type="datetime-local" class="form-control" @bind="@grnModel.ArrivalTimestamp" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* --- 3. PRODUCTS TABLE --- *@
+        <h4 class="mb-3 text-pca-primary">Product Lines</h4>
+        <div class="table-responsive mb-4">
+            <table class="table table-bordered table-striped">
+                <thead class="bg-pca-accent text-white">
+                    <tr>
+                        <th>Product</th>
+                        <th>Del No</th>
+                        <th>Qty DN</th>
+                        <th>Qty Rec.</th>
+                        <th>Temp (°C)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in grnModel.ProductLines)
+                    {
+                        <tr>
+                            <td><input type="text" class="form-control" @bind="@line.Product" /></td>
+                            <td><input type="text" class="form-control" @bind="@line.DeliveryNoteNo" /></td>
+                            <td><input type="number" class="form-control" @bind="@line.QuantityOnDeliveryNote" /></td>
+                            <td><input type="number" class="form-control" @bind="@line.QuantityReceived" /></td>
+                            <td><input type="number" class="form-control" @bind="@line.Temperature" /></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* --- 4. AVSEC CHECKS --- *@
+        <h4 class="mb-3 text-pca-primary">AVSEC Security Checks</h4>
+        <div class="card p-3 mb-4 bg-light border">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" @bind="grnModel.IsDriversIdentityChecked" id="c1" disabled="@(!isEditable)">
+                        <label class="form-check-label" for="c1">Driver ID Checked</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" @bind="grnModel.IsVehicleChecked" id="c2" disabled="@(!isEditable)">
+                        <label class="form-check-label" for="c2">Vehicle Checked</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" @bind="grnModel.AreDeliveryDocumentsChecked" id="c3" disabled="@(!isEditable)">
+                        <label class="form-check-label" for="c3">Documents Checked</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" @bind="grnModel.IsKnownConsignorChecked" id="c4" disabled="@(!isEditable)">
+                        <label class="form-check-label" for="c4">Known Consignor Status</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" @bind="grnModel.IsCargoStoredSecurely" id="c5" disabled="@(!isEditable)">
+                        <label class="form-check-label" for="c5">Cargo Secured</label>
+                    </div>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" @bind="grnModel.IsDangerousGoods" id="c6" disabled="@(!isEditable)">
+                        <label class="form-check-label" for="c6">Dangerous Goods</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center pb-5">
+            <button class="btn btn-pca-primary btn-lg" @onclick="SaveChanges">
+                💾 Update & Save Changes
+            </button>
+        </div>
+    }
+</div>
+
+@code {
+    // 1. Capture the ReceiptNo from the URL
+    [Parameter]
+    public string? ReceiptNo { get; set; }
+
+    private GrnModel grnModel = new GrnModel();
+    private bool foundRecord = false;
+    private bool isEditable = true; // Toggle if you want to lock the AVSEC checks
+
+    // 2. Load data whenever the parameters are set (i.e., page load)
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(ReceiptNo))
+        {
+            await LoadGrnData(ReceiptNo);
+        }
+    }
+
+    private Task LoadGrnData(string id)
+    {
+        const string filePath = "GrnRecords.json";
+        foundRecord = false;
+
+        if (File.Exists(filePath))
+        {
+            try
+            {
+                var lines = File.ReadAllLines(filePath);
+                foreach (var line in lines)
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        var record = JsonSerializer.Deserialize<GrnModel>(line);
+                        // Case-insensitive comparison
+                        if (record != null && string.Equals(record.ReceiptNo, id, StringComparison.OrdinalIgnoreCase))
+                        {
+                            grnModel = record;
+                            foundRecord = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error reading file: {ex.Message}");
+            }
+        }
+        return Task.CompletedTask;
+    }
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/searchstock");
+    }
+
+    private void SaveChanges()
+    {
+        // Logic to update the JSON file would go here.
+        // For simple JSON text files, this usually involves reading all lines,
+        // replacing the specific line, and writing them back.
+        // For this demo, we'll just show a success message.
+        JSRuntime.InvokeVoidAsync("alert", "Changes saved successfully! (Simulation)");
+    }
+}

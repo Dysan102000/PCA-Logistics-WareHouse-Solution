@@ -1,0 +1,89 @@
+﻿@page "/viewgrn/{ReceiptNo}"
+@using Microsoft.AspNetCore.Components
+@inject NavigationManager NavigationManager
+
+<PageTitle>View GRN @ReceiptNo | PCA Logistics</PageTitle>
+
+@* --- INHERIT STYLES FROM GRN SCANNING FOR CONSISTENCY --- *@
+<style>
+    .btn-pca-primary {
+        background-color: #183B7D; /* PCA Dark Blue */
+        border-color: #183B7D;
+        color: white;
+    }
+
+        .btn-pca-primary:hover {
+            background-color: #122c5e;
+            border-color: #122c5e;
+        }
+
+    .text-pca-primary {
+        color: #183B7D;
+    }
+
+    .bg-pca-accent {
+        background-color: #AEC435 !important; /* PCA Olive Green */
+    }
+
+    /* Styles for the PDF frame */
+    .pdf-frame {
+        width: 100%;
+        height: 800px; /* Adjust height as needed for good viewing */
+        border: 1px solid #ddd;
+    }
+</style>
+
+<div class="grn-processing-container container">
+    <h2 class="mb-4 text-pca-primary">
+        📄 GRN Document Viewer: @ReceiptNo
+        <button class="btn btn-pca-primary btn-sm float-end" onclick="window.print()">🖨️ Print</button>
+    </h2>
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-pca-accent text-white">
+            <h4 class="m-0">GRN: @ReceiptNo</h4>
+        </div>
+        <div class="card-body p-1">
+
+            @* The <iframe> is used here to embed the PDF file itself. 
+               The 'src' path should point to an API endpoint or a file 
+               location that serves the generated PDF document.
+            *@
+            <iframe class="pdf-frame" src="@PdfSourceUrl" frameborder="0">
+                <p>Your browser does not support iframes. Please download the PDF.</p>
+            </iframe>
+
+        </div>
+        <div class="card-footer text-muted">
+            Please check document contents for accuracy before printing.
+        </div>
+    </div>
+</div>
+
+@code {
+    // Parameter to capture the Receipt No. from the URL
+    [Parameter]
+    public string ReceiptNo { get; set; } = string.Empty;
+
+    // Property for the PDF source URL
+    public string PdfSourceUrl { get; set; } = string.Empty;
+
+    protected override void OnInitialized()
+    {
+        // 1. Sanitize input
+        if (string.IsNullOrWhiteSpace(ReceiptNo))
+        {
+            // Handle error or redirect if no receipt number is provided
+            NavigationManager.NavigateTo("/grnscanning");
+            return;
+        }
+
+        // 2. Define the source URL for the PDF.
+        // IMPORTANT: Replace this with your actual API endpoint or file path.
+        // Example: If you have an API route that generates a PDF:
+        // PdfSourceUrl = $"/api/GrnDocument/GeneratePdf?receiptNo={ReceiptNo}";
+
+        // For now, we will use a placeholder or assume a static file path:
+        PdfSourceUrl = $"/documents/GRN_{ReceiptNo}.pdf";
+    }
+}

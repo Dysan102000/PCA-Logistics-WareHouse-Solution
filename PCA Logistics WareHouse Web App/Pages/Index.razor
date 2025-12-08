@@ -1,0 +1,135 @@
+﻿@page "/"
+@using PCA_Logistics_WareHouse_Web_App.Data
+@using System.IO
+@using System.Text.Json
+@inject NavigationManager NavigationManager
+
+<PageTitle>Warehouse Dashboard</PageTitle>
+
+<div class="warehouse-dashboard container">
+
+    <div class="dashboard-content">
+        📈 Warehouse Statistics (Future Use)
+
+        <p class="text-muted">
+            This area is reserved for displaying key warehouse metrics, aligned with PCA Logistics' operations.
+        </p>
+
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="card text-white card-pca-success mb-3">
+                    <div class="card-header">Total Boxes in Stock</div> @* Updated description to reflect BoxCount *@
+                    <div class="card-body">
+                        <h5 class="card-title">@TotalBoxesInStock.ToString("N0")</h5> @* Bind calculated value *@
+                        <p class="card-text">Total number of boxes recorded in GRNs.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card text-white" style="background-color: #AEC435;">
+                    <div class="card-header">Last 24h Receipts</div>
+                    <div class="card-body">
+                        <h5 class="card-title">@ReceiptsLast24h</h5> @* Bind calculated value *@
+                        <p class="card-text">GRNs processed recently.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card text-white bg-warning mb-3">
+                    <div class="card-header">Pending Outbound</div>
+                    <div class="card-body">
+                        <h5 class="card-title">52</h5>
+                        <p class="card-text">Shipments waiting for dispatch.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <br />
+
+        @* <SurveyPrompt Title="How is Blazor working for you?"/> *@
+    </div>
+</div>
+
+@code {
+    // State variables for the dashboard tiles
+    private long TotalBoxesInStock { get; set; } = 0;
+    private int ReceiptsLast24h { get; set; } = 0;
+
+    // Lifecycle method to load data when the component initializes
+    protected override Task OnInitializedAsync()
+    {
+        var allGrns = LoadAllGrnRecords();
+        CalculateStatistics(allGrns);
+        return Task.CompletedTask;
+    }
+
+    private void CalculateStatistics(List<GrnModel> grns)
+    {
+        if (grns == null || !grns.Any())
+        {
+            TotalBoxesInStock = 0;
+            ReceiptsLast24h = 0;
+            return;
+        }
+
+        // 1. Total Items in Stock (Calculated as Total BoxCount)
+        // We use 'long' for safety in case of large inventory
+        TotalBoxesInStock = grns.Sum(g => (long)g.BoxCount);
+
+        // 2. Last 24h Receipts
+        var last24Hours = DateTime.Now.AddHours(-24);
+
+        ReceiptsLast24h = grns
+            .Count(g => g.ArrivalTimestamp.HasValue && g.ArrivalTimestamp.Value >= last24Hours);
+    }
+
+    // Method to load all GRNs from the file (reused from other pages)
+    private List<GrnModel> LoadAllGrnRecords()
+    {
+        // Using the file path agreed upon in GrnScanning.razor
+        const string filePath = "GrnRecords.json";
+        List<GrnModel> recordsToReturn = new List<GrnModel>();
+
+        if (File.Exists(filePath))
+        {
+            try
+            {
+                string[] lines = File.ReadAllLines(filePath);
+
+                foreach (string line in lines)
+                {
+                    if (!string.IsNullOrWhiteSpace(line))
+                    {
+                        GrnModel? grn = JsonSerializer.Deserialize<GrnModel>(line);
+                        if (grn != null)
+                        {
+                            recordsToReturn.Add(grn);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Note: In a real app, you would log this error professionally.
+                Console.WriteLine($"ERROR loading GRN records for dashboard: {ex.Message}");
+            }
+        }
+        return recordsToReturn;
+    }
+
+    // Existing navigation methods (kept for completeness)
+    private void NavigateToGrnProcessing()
+    {
+        // Navigate to the GRN processing page
+        NavigationManager.NavigateTo("/grnprocessing");
+    }
+
+    private void NavigateToGrnScanning()
+    {
+        // Navigate to the GRN scanning page (assuming this is separate from processing)
+        NavigationManager.NavigateTo("/grnscanning");
+    }
+}
