@@ -31,206 +31,250 @@
 <div class="grn-processing-container container">
     <h2 class="mb-4">
         📦 GRN Scanning &nbsp;
-        @* FIX: Removed duplicate button and added Save button (assuming SaveGrnData exists in code-behind) *@
         <button class="btn btn-pca-primary btn-sm" @onclick="DevHydrateFields">📦 Auto Fill</button>
-        <button class="btn btn-pca-primary btn-sm" @onclick="SaveGrnData">💾 Save Data</button>
+        <button class="btn btn-success btn-sm" @onclick="SaveGrnData">💾 Finalize GRN</button>
+        <button class="btn btn-secondary btn-sm" @onclick="ResetForNewGrn">➕ New GRN</button>
         <button class="btn btn-pca-primary btn-sm" @onclick="ViewGrnPdf">📄 View GRN</button>
     </h2>
 
+    @* 1. GRN Header Details *@
     <div class="card mb-4 shadow-sm">
         <div class="card-header bg-pca-accent text-white">
-            <h4 class="m-0">1. Add GRN Receipt Number</h4>
+            <h4 class="m-0">GRN Header Details</h4>
         </div>
         <div class="card-body">
-            <div class="input-group input-group-lg">
-                <input id="inReceiptNo" type="text" class="form-control"
-                       placeholder="Enter Receipt No."
-                       @bind="@grnModel.ReceiptNo"
-                       @onkeyup="HandleGrnIdInput"
-                       @ref="inputElement"
-                       aria-label="GRN Receipt Number Input" />
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="receiptNo">Receipt No. <span class="text-danger">*</span></label>
+                        <input id="receiptNo" class="form-control" @bind-value="grnModel.ReceiptNo" @onkeydown="HandleGrnIdInput" @ref="inputElement" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="arrivalTimestamp">Arrival Timestamp</label>
+                        <input id="arrivalTimestamp" class="form-control" type="datetime-local" @bind="grnModel.ArrivalTimestamp" />
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="receivedFrom">Received From</label>
+                        <input id="receivedFrom" class="form-control" @bind="grnModel.ReceivedFrom" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="receivedFor">Received For</label>
+                        <input id="receivedFor" class="form-control" @bind="grnModel.ReceivedFor" />
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    @* --- NEW: DOCUMENT UPLOAD SECTION --- *@
-    <h4 class="mt-5 mb-3 text-pca-primary">2. Upload Documents (PDF/Image)</h4>
+
+    @* Driver and Truck Details *@
     <div class="card mb-4 shadow-sm">
-        <div class="card-header">
-            <h5 class="m-0">Delivery Note & Driver's Licence 📑</h5>
+        <div class="card-header bg-pca-accent text-white">
+            <h4 class="m-0">Driver & Shipment Details</h4>
         </div>
         <div class="card-body">
-            <p class="text-muted">Please upload scanned documents for the GRN: @grnModel.ReceiptNo</p>
-
-            @* Blazor InputFile component to handle uploads *@
-            <InputFile OnChange="@HandleFileSelection" multiple />
-
-            <div class="mt-3">
-                <h6>Uploaded Files (@(grnModel.ScannedDocumentReferences?.Count ?? 0)):</h6>
-                @if (grnModel.ScannedDocumentReferences != null && grnModel.ScannedDocumentReferences.Any())
-                {
-                    <ul>
-                        @foreach (var fileName in grnModel.ScannedDocumentReferences)
-                        {
-                            <li>✅ @fileName</li>
-                        }
-                    </ul>
-                }
-                else
-                {
-                    <p class="text-muted">No documents uploaded yet.</p>
-                }
-            </div>
-        </div>
-    </div>
-    @* --- END NEW SECTION --- *@
-
-    <h4 class="mt-5 mb-3 text-pca-primary">3. GRN Details</h4>
-
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card border-primary h-100">
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label">Received From</label>
-                        <input type="text" class="form-control" @bind="@grnModel.ReceivedFrom" />
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="driverName">Driver Name</label>
+                        <input id="driverName" class="form-control" @bind="grnModel.DriverName" />
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Received For</label>
-                        <input type="text" class="form-control" @bind="@grnModel.ReceivedFor" />
-                    </div>
-                    <hr />
-                    <div class="mb-3">
-                        <label for="totalBoxes" class="form-label fw-bold">
-                            T. Boxes
-                        </label>
-                        <input id="totalBoxes" type="number" class="form-control" @bind="@grnModel.BoxCount" />
-                    </div>
-                    <div class="mb-0">
-                        <label for="totalWeight" class="form-label fw-bold">
-                            T. Weight (kg)
-                        </label>
-                        <input id="totalWeight" type="number" class="form-control" @bind="@grnModel.TotalWeightKg" />
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="driverIdNo">Driver ID No.</label>
+                        <input id="driverIdNo" class="form-control" @bind="grnModel.DriverIdNo" />
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-8">
-            <div class="card border-primary h-100">
-                <div class="card-header">Driver & Shipment Info</div>
-                <div class="card-body">
-                    <div class="mb-3">
-                        <label class="form-label" for="">Driver</label>
-                        <input id="inDriverName" type="text" class="form-control" placeholder="Driver Name" @bind="@grnModel.DriverName" />
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="truckRegNo">Truck Reg. No.</label>
+                        <input id="truckRegNo" class="form-control" @bind="grnModel.TruckRegNo" />
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Identity No.</label>
-                        <input type="text" class="form-control" placeholder="ID Number" @bind="@grnModel.DriverIdNo" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Truck Reg.</label>
-                        <input type="text" class="form-control" placeholder="Truck Reg. No." @bind="@grnModel.TruckRegNo" />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Time Arrived.</label>
-                        <input type="datetime-local" class="form-control" placeholder="Arrival Time" @bind="@grnModel.ArrivalTimestamp" />
+                </div>
+                <div class="col-md-6">
+                    <div class="row">
+                        <div class="col">
+                            <div class="form-group mb-3">
+                                <label for="boxCount">Box Count</label>
+                                <input id="boxCount" class="form-control" type="number" @bind="grnModel.BoxCount" />
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-group mb-3">
+                                <label for="weight">Total Weight (kg)</label>
+                                <input id="weight" class="form-control" type="number" step="0.01" @bind="grnModel.TotalWeightKg" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <h4 class="mt-5 mb-3 text-pca-primary">4. Product and Condition Checks</h4>
-    <div class="table-responsive mb-4">
-        <table class="table table-bordered table-striped">
-            <thead class="bg-pca-accent text-white">
-                <tr>
-                    <th>Product</th>
-                    <th>Del No</th>
-                    <th>Qty DN</th>
-                    <th>Qty Rec.</th>
-                    <th>Temp (°C)</th>
-                    <th style="width: 50px;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var line in grnModel.ProductLines)
-                {
+    @* Product Lines Table *@
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-pca-accent text-white d-flex justify-content-between align-items-center">
+            <h4 class="m-0">Product Line Items</h4>
+            <button class="btn btn-sm btn-pca-primary" @onclick="AddProductLine">➕ Add Line</button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped table-sm mb-0">
+                <thead class="bg-light">
                     <tr>
-                        <td><input type="text" class="form-control" @bind="@line.Product" placeholder="Product Name" /></td>
-                        <td><input type="text" class="form-control" @bind="@line.DeliveryNoteNo" placeholder="DN #" /></td>
-                        <td><input type="number" class="form-control" @bind="@line.QuantityOnDeliveryNote" /></td>
-                        <td><input type="number" class="form-control" @bind="@line.QuantityReceived" /></td>
-                        <td><input type="number" class="form-control" @bind="@line.Temperature" /></td>
-                        <td class="text-center">
-                            <button class="btn btn-danger btn-sm" @onclick="@(() => RemoveProductLine(line))" title="Remove line">X</button>
-                        </td>
+                        <th style="width: 30%;">Product / Description</th>
+                        <th style="width: 15%;">Delivery Note No.</th>
+                        <th style="width: 10%;">Qty DN</th>
+                        <th style="width: 10%;">Qty Rec.</th>
+                        <th style="width: 15%;">Dims</th>
+                        <th style="width: 10%;">Temp (°C)</th>
+                        <th style="width: 10%;">Action</th>
                     </tr>
-                }
-            </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="6" class="text-end">
-                        <button type="button" class="btn btn-pca-primary" @onclick="AddProductLine">
-                            + Add Product Line
-                        </button>
-                    </td>
-                </tr>
-            </tfoot>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach (var line in grnModel.ProductLines)
+                    {
+                        <tr>
+                            <td><input class="form-control form-control-sm" @bind="line.Product" /></td>
+                            <td><input class="form-control form-control-sm" @bind="line.DeliveryNoteNo" /></td>
+                            <td><input class="form-control form-control-sm" type="number" @bind="line.QuantityOnDeliveryNote" /></td>
+                            <td><input class="form-control form-control-sm" type="number" @bind="line.QuantityReceived" /></td>
+                            <td><input class="form-control form-control-sm" @bind="line.Dims" /></td>
+                            <td><input class="form-control form-control-sm" type="number" step="0.1" @bind="line.Temperature" /></td>
+                            <td><button class="btn btn-danger btn-sm" @onclick="() => RemoveProductLine(line)">X</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <h4 class="mt-5 mb-3 text-pca-primary">5. AVSEC Security Checks</h4>
-    <div class="row mb-5">
-        <div class="col-md-6">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="grnModel.IsDriversIdentityChecked" id="check1">
-                <label class="form-check-label" for="check1">
-                    Drivers' identity checked upon receipt of cargo.
-                </label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="grnModel.IsVehicleChecked" id="check2">
-                <label class="form-check-label" for="check2">
-                    Vehicle checked for any tampering or unlawful interference.
-                </label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="grnModel.AreDeliveryDocumentsChecked" id="check3">
-                <label class="form-check-label" for="check3">
-                    Delivery documents checked against contents of cargo.
-                </label>
-            </div>
+    @* ========================================================================= *@
+    @* NEW SECTION: PHOTO CAPTURE (Tablet Camera)                                *@
+    @* ========================================================================= *@
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-pca-accent text-white">
+            <h4 class="m-0">📷 Photo Evidence (Tablet Camera)</h4>
         </div>
-        <div class="col-md-6">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="grnModel.IsKnownConsignorChecked" id="check4">
-                <label class="form-check-label" for="check4">
-                    Checked for Known Consignor / Regulated Agent status.
-                </label>
+        <div class="card-body text-center">
+
+            @* This Label acts as the button. The actual InputFile is hidden inside it. *@
+            <label class="btn btn-pca-primary btn-lg w-100 mb-3 py-4">
+                <h3 class="m-0">📸 Tap to Take Photo</h3>
+                <small>Opens camera immediately</small>
+
+                @* capture="environment" -> Forces rear camera on mobile/tablet 
+                   accept="image/*"      -> Restricts input to image files
+                *@
+                <InputFile OnChange="HandlePhotoSelection" capture="environment" accept="image/*" style="display: none;" />
+            </label>
+
+            @* List of Captured Photos *@
+            @if (grnModel.ScannedDocumentReferences.Any(x => x.StartsWith("IMG_")))
+            {
+                <div class="text-start">
+                    <h6>Captured Photos:</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach (var doc in grnModel.ScannedDocumentReferences.Where(x => x.StartsWith("IMG_")))
+                        {
+                            <div class="badge bg-secondary p-2 d-flex align-items-center">
+                                <span>📷 @doc</span>
+                                @* Optional: View link if you have a way to serve static files *@
+                                @* <a href="/uploads/@doc" target="_blank" class="text-white ms-2 text-decoration-none">View</a> *@
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    @* ========================================================================= *@
+
+    @* Existing Document Upload *@
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-secondary text-white">
+            <h4 class="m-0">📑 Document Uploads (PDF/Scans)</h4>
+        </div>
+        <div class="card-body">
+            <label class="form-label">Select PDF Files:</label>
+            <InputFile class="form-control" OnChange="HandleFileSelection" multiple />
+
+            @if (grnModel.ScannedDocumentReferences.Any(x => !x.StartsWith("IMG_")))
+            {
+                <h6 class="mt-3">Uploaded Documents:</h6>
+                <ul>
+                    @foreach (var doc in grnModel.ScannedDocumentReferences.Where(x => !x.StartsWith("IMG_")))
+                    {
+                        <li>📄 @doc</li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    @* AVSEC Checklist *@
+    <div class="card mb-4 shadow-sm p-3">
+        <h4 class="m-0 text-pca-primary mb-3">AVSEC Security Checks</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" @bind="grnModel.IsDriversIdentityChecked" id="check1">
+                    <label class="form-check-label" for="check1">
+                        Driver's identity checked against documents.
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" @bind="grnModel.IsVehicleChecked" id="check2">
+                    <label class="form-check-label" for="check2">
+                        Vehicle checked for signs of tampering.
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" @bind="grnModel.AreDeliveryDocumentsChecked" id="check3">
+                    <label class="form-check-label" for="check3">
+                        Delivery documents checked against contents of cargo.
+                    </label>
+                </div>
             </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="grnModel.IsCargoStoredSecurely" id="check5">
-                <label class="form-check-label" for="check5">
-                    Cargo stored in secured area after screening.
-                </label>
-            </div>
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" @bind="grnModel.IsDangerousGoods" id="check6">
-                <label class="form-check-label" for="check6">
-                    Dangerous Goods (Confirm YES/NO).
-                </label>
+            <div class="col-md-6">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" @bind="grnModel.IsKnownConsignorChecked" id="check4">
+                    <label class="form-check-label" for="check4">
+                        Checked for Known Consignor / Regulated Agent status.
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" @bind="grnModel.IsCargoStoredSecurely" id="check5">
+                    <label class="form-check-label" for="check5">
+                        Cargo stored in secured area after screening.
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" @bind="grnModel.IsDangerousGoods" id="check6">
+                    <label class="form-check-label" for="check6">
+                        Dangerous Goods (Confirm YES/NO).
+                    </label>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="text-center">
-        <button class="btn btn-success btn-lg" @onclick="FinalizeGrnProcessing">
+        @* This bottom button will now call the primary Save method as well *@
+        <button class="btn btn-success btn-lg" @onclick="SaveGrnData">
             ✅ Finalize GRN & Accept Goods
         </button>
         <p class="text-muted mt-2">
             All checks and quantities must be confirmed before finalizing.
         </p>
     </div>
-
 </div>

@@ -36,6 +36,42 @@
                 element.focus();
             }
         }
+
+        // Add this new function to your JavaScript file or index.html/App.razor
+        function openPdfInNewTab(base64Data) {
+            var dataUri = "data:application/pdf;base64," + base64Data;
+            // window.open will load the Data URI in a new tab, prompting the PDF viewer.
+            window.open(dataUri, '_blank');
+        }
+
+                // Add this function to your client-side JavaScript
+        function openFileInNewTab(mimeType, base64Data) {
+            // Construct the Data URI: data:[MIME_TYPE];base64,[BASE64_DATA]
+            var dataUri = "data:" + mimeType + ";base64," + base64Data;
+
+            // Open the Data URI in a new tab
+            window.open(dataUri, '_blank');
+        }
     </script>
+
+    <script>
+        // This is the function called from the GrnScanning.razor.cs code-behind
+        window.saveAsFile = function (fileName, base64String) {
+            // 1. Convert Base64 string to a blob
+            var link = document.createElement('a');
+            link.href = "data:application/pdf;base64," + base64String;
+            link.target = '_blank'; // Opens in a new tab
+
+            // 2. Set the download attribute (optional, for download prompt)
+            link.download = fileName;
+
+            // 3. Trigger the click event to open the file
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+    </script>
+
 </body>
 </html>

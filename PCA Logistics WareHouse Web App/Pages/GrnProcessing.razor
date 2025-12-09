@@ -5,6 +5,7 @@
 @using System.Text.Json
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment WebHostEnvironment
 
 <PageTitle>Process GRN | PCA Logistics</PageTitle>
 
@@ -58,9 +59,10 @@
                     <div class="list-group">
                         @foreach (var fileName in grnModel.ScannedDocumentReferences)
                         {
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="list-group-item d-flex justify-content-between align-items-center document-item"
+                                 @onclick="() => ViewDocument(fileName)" style="cursor: pointer;">
                                 <span>📄 @fileName</span>
-                                <span class="badge bg-success rounded-pill">Uploaded</span>
+                                <span class="badge bg-pca-primary rounded-pill">Click to View</span> @* 👈 UPDATED BADGE *@
                             </div>
                         }
                     </div>
@@ -259,5 +261,52 @@
         // replacing the specific line, and writing them back.
         // For this demo, we'll just show a success message.
         JSRuntime.InvokeVoidAsync("alert", "Changes saved successfully! (Simulation)");
+    }
+
+    private async Task ViewDocument(string fileName)
+    {
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Error: Document filename is missing.");
+            return;
+        }
+
+        // Determine the MIME type based on the extension for Data URI scheme
+        var fileExtension = Path.GetExtension(fileName)?.ToLowerInvariant();
+        var mimeType = fileExtension switch
+        {
+            ".pdf" => "application/pdf",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            _ => "application/octet-stream" // Generic fallback
+        };
+
+        // Construct the path to the uploaded file (assuming files are in wwwroot/uploads)
+        var uploadsPath = Path.Combine(WebHostEnvironment.WebRootPath, "uploads");
+        var fullPath = Path.Combine(uploadsPath, fileName);
+
+        if (!File.Exists(fullPath))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Document '{fileName}' not found on the server.");
+            return;
+        }
+
+        try
+        {
+            // 1. Read the file bytes
+            var fileBytes = await File.ReadAllBytesAsync(fullPath);
+
+            // 2. Convert to Base64 string
+            var base64String = Convert.ToBase64String(fileBytes);
+
+            // 3. Call the generic JavaScript function to open the file in a new tab
+            // Note: You must ensure 'openFileInNewTab' is defined on the client side (see step 2)
+            await JSRuntime.InvokeVoidAsync("openFileInNewTab", mimeType, base64String);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error reading document: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error reading document: {fileName}. Check server logs.");
+        }
     }
 }
