@@ -15,6 +15,8 @@ namespace PCA_Logistics_WareHouse_Web_App
             builder.Services.AddServerSideBlazor();
             builder.Services.AddSingleton<WeatherForecastService>();
 
+            builder.WebHost.UseUrls("http://0.0.0.0:5283");
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -25,7 +27,8 @@ namespace PCA_Logistics_WareHouse_Web_App
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            //app.UseHttpsRedirection();
+            
 
             app.UseStaticFiles();
 

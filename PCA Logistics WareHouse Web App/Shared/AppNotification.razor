@@ -1,0 +1,64 @@
+﻿@* Shared/AppNotification.razor *@
+<div class="fixed-top-notification-container">
+    @if (IsVisible)
+    {
+        <div class="alert alert-@CssClass alert-dismissible fade show" role="alert">
+            <strong>@Title</strong> @Message
+            <button type="button" class="btn-close" @onclick="HideNotification" aria-label="Close"></button>
+        </div>
+    }
+</div>
+
+@code {
+    public bool IsVisible { get; set; }
+    public string Title { get; set; } = "";
+    public string Message { get; set; } = "";
+    public string CssClass { get; set; } = "info"; // Bootstrap class: primary, success, danger, warning
+
+    private System.Timers.Timer? timer;
+
+    public void ShowNotification(string title, string message, string cssClass = "info", int durationMs = 5000)
+    {
+        Title = title;
+        Message = message;
+        CssClass = cssClass;
+        IsVisible = true;
+        StateHasChanged(); // Force the UI to update
+
+        // Reset and start the timer
+        timer?.Dispose();
+        timer = new System.Timers.Timer(durationMs);
+        timer.Elapsed += (sender, e) => HideNotification();
+        timer.AutoReset = false;
+        timer.Start();
+    }
+
+    public void HideNotification()
+    {
+        IsVisible = false;
+        timer?.Dispose();
+        // Since this might be called from a non-Blazor thread (the timer), ensure StateHasChanged is on the Blazor synchronization context
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
+    }
+}
+
+<style>
+    /* Add this CSS to your global site.css or the component's style block */
+    .fixed-top-notification-container {
+        /* 1. Pin the container to the center point (50% from top, 50% from left) */
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        /* 2. Pull the container back by half its own width/height to center the box */
+        transform: translate(-50%, -50%);
+        /* 3. Ensure it sits above all other content */
+        z-index: 2000;
+        /* 4. Keep the max width for readability */
+        max-width: 400px;
+    }
+</style>

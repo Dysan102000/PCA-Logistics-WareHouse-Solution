@@ -1,0 +1,35 @@
+﻿@using System.Globalization
+
+<div class="search-dropdown-container" @onfocusout="HandleInputBlur" @onfocusin="HandleInputFocus">
+    <input type="text"
+           id="@InputId"
+           class="form-control"
+           placeholder="@Placeholder"
+           @bind="Value"
+           @bind:event="oninput"
+           autocomplete="off"
+           aria-autocomplete="list"
+           aria-controls="@(InputId + "_list")"
+           aria-expanded="@(ShowDropdown ? "true" : "false")" />
+
+    @if (ShowDropdown)
+    {
+        <div id="@(InputId + "_list")" class="dropdown-menu show" style="width: 100%; position: absolute; z-index: 1050;">
+            @if (!FilteredList.Any() && !string.IsNullOrWhiteSpace(Value))
+            {
+                <span class="dropdown-item text-muted">No match for "@Value". Will be saved as new.</span>
+            }
+            else
+            {
+                @foreach (var company in FilteredList)
+                {
+                    <a class="dropdown-item" href="#"
+                       @onclick:preventDefault
+                       @onclick="() => SelectCompany(company)">
+                        @company
+                    </a>
+                }
+            }
+        </div>
+    }
+</div>

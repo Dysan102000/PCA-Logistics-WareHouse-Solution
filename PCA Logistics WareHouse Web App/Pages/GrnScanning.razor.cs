@@ -1,16 +1,17 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.JSInterop;
 using PCA_Logistics_WareHouse_Web_App.Data;
-using System.Text.Json;
-using System.IO;
-using Microsoft.AspNetCore.Components.Forms;
-using Microsoft.AspNetCore.Hosting;
-using System.Linq;
+using PCA_Logistics_WareHouse_Web_App.Shared;
 // QuestPDF USINGS
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
 
 // You may need to adjust this namespace based on your project structure.
 namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
@@ -41,6 +42,18 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
 
         private const int MaxFileSize = 10 * 1024 * 1024; // 10MB limit
 
+        // =========================================================
+        // NOTIFICATION METHODS
+        // =========================================================
+        // 1. ADD FIELD TO REFERENCE THE COMPONENT
+        protected AppNotification? appNotification;
+
+        // 2. Add methods to call the component's ShowNotification method
+        private void ShowSuccess(string title, string message) =>
+            appNotification?.ShowNotification(title, message, "success");
+
+        private void ShowError(string title, string message) =>
+            appNotification?.ShowNotification(title, message, "danger", 8000); // Longer duration for errors
 
         // Constructor
         public GrnScanning()
@@ -226,6 +239,8 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
             hydrateModel.ProductLines.Add(productLine);
             #endregion
             grnModel = hydrateModel;
+
+            ShowSuccess("Autofill", "Fields filled.");
         }
 
         public void LoadGrnDetails()
@@ -287,18 +302,23 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
 
             if (!allRequiredChecked)
             {
-                Console.WriteLine("ERROR: Not all AVSEC security checks have been confirmed.");
+                //Console.WriteLine("ERROR: Not all AVSEC security checks have been confirmed.");
+                ShowError("GRN NOT Finalized!", "ERROR: Not all AVSEC security checks have been confirmed.");
                 return;
             }
 
             if (grnModel.ScannedDocumentReferences == null || !grnModel.ScannedDocumentReferences.Any())
             {
-                Console.WriteLine("ERROR: No scanned documents were uploaded.");
+                //Console.WriteLine("ERROR: No scanned documents were uploaded.");
+                ShowError("Documents!", "ERROR: No scanned documents were uploaded.");
+
             }
 
             // ACTION: Save the GRN data
             SaveGrnIfNotExist(grnModel);
-            Console.WriteLine($"GRN {grnModel.ReceiptNo} finalized and saved successfully!");
+            //ShowSuccess("GRN Finalized!", $"Receipt No. {grnModel.ReceiptNo} has been successfully saved and finalized.", 6000);
+            ShowSuccess("GRN Finalized!", $"Receipt No. {grnModel.ReceiptNo} has been successfully saved and finalized.");
+            //Console.WriteLine($"GRN {grnModel.ReceiptNo} finalized and saved successfully!");
 
             // CRUCIAL CHANGE: REMOVED THE PAGE RESET HERE.
         }
@@ -570,5 +590,6 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
 
             return document.GeneratePdf();
         }
+
     }
 }
