@@ -5,8 +5,9 @@
            id="@InputId"
            class="form-control"
            placeholder="@Placeholder"
-           @bind="Value"
-           @bind:event="oninput"
+           value="@Value"
+           @oninput="((e) => OnValueChange(e.Value?.ToString() ?? string.Empty))"
+           @onkeydown="HandleKeyDown"
            autocomplete="off"
            aria-autocomplete="list"
            aria-controls="@(InputId + "_list")"
@@ -21,13 +22,21 @@
             }
             else
             {
-                @foreach (var company in FilteredList)
+                // Logic to visually highlight the first item (Closest Match)
+                var isFirstItem = true;
+
+                foreach (var company in FilteredList)
                 {
-                    <a class="dropdown-item" href="#"
+                    // Apply 'active' class only to the first item
+                    var activeClass = isFirstItem ? "active" : "";
+
+                    <a class="dropdown-item @activeClass" href="#"
                        @onclick:preventDefault
                        @onclick="() => SelectCompany(company)">
                         @company
                     </a>
+
+                    isFirstItem = false;
                 }
             }
         </div>

@@ -3,6 +3,7 @@
 @using System.IO
 @using System.Text.Json
 @using PCA_Logistics_WareHouse_Web_App.Shared
+@using PCA_Logistics_WareHouse_Web_App.Components.Shared
 @inherits PCA_Logistics_WareHouse_Web_App.Components.Pages.GrnScanning
 
 <PageTitle>GRN Scanning | PCA Logistics</PageTitle>
@@ -33,6 +34,20 @@
     .bg-pca-accent {
         background-color: #AEC435 !important; /* PCA Olive Green */
     }
+
+    .search-dropdown-container {
+        position: relative;
+    }
+
+        /* Important: This forces the dropdown to show and positions it correctly */
+        .search-dropdown-container .dropdown-menu {
+            position: absolute !important;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1050;
+            display: block;
+        }
 </style>
 
 <div class="grn-processing-container container">
@@ -68,13 +83,21 @@
                 <div class="col-md-6">
                     <div class="form-group mb-3">
                         <label for="receivedFrom">Received From</label>
-                        <input id="receivedFrom" class="form-control" @bind="grnModel.ReceivedFrom" />
+                        <CompanySearchInput InputId="receivedFrom" 
+                            Placeholder="Search or enter sender name"
+                            @bind-Value="grnModel.ReceivedFrom" 
+                            MasterList="_receivedFromMasterList" 
+                            OnNewCompanyEntered="OnReceivedFromNewCompanyEntered" />
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="form-group mb-3">
                         <label for="receivedFor">Received For</label>
-                        <input id="receivedFor" class="form-control" @bind="grnModel.ReceivedFor" />
+                        <CompanySearchInput InputId="receivedFor" 
+                            Placeholder="Search or enter recipient name" 
+                            @bind-Value="grnModel.ReceivedFor" 
+                            MasterList="_receivedForMasterList" 
+                            OnNewCompanyEntered="OnReceivedForNewCompanyEntered" />
                     </div>
                 </div>
             </div>

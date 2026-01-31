@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.JSInterop;
 using PCA_Logistics_WareHouse_Web_App.Data;
 using PCA_Logistics_WareHouse_Web_App.Shared;
-// QuestPDF USINGS
+using PCA_Logistics_WareHouse_Web_App.Components.Shared;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -16,6 +16,7 @@ using System.Text.Json;
 // You may need to adjust this namespace based on your project structure.
 namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
 {
+
     public partial class GrnScanning : ComponentBase
     {
         // Dependency Injection
@@ -27,6 +28,7 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
 
         [Inject]
         public NavigationManager NavigationManager { get; set; } = default!;
+
 
         // Fields
         protected ElementReference inputElement;
@@ -41,6 +43,17 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
         private const string LogoPath = "img/pca_logo_5.png";
 
         private const int MaxFileSize = 10 * 1024 * 1024; // 10MB limit
+
+        // =========================================================
+        // PAGE NOTIFICATION SETUP
+        // =========================================================
+        // Define constants for file paths
+        private const string ReceivedFromListPath = "CompanyList_ReceivedFrom.txt";
+        private const string ReceivedForListPath = "CompanyList_ReceivedFor.txt";
+
+        // Master Lists that feed the components
+        protected List<string> _receivedFromMasterList = new();
+        protected List<string> _receivedForMasterList = new();
 
         // =========================================================
         // NOTIFICATION METHODS
@@ -64,35 +77,66 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
         }
 
         // Blazor Lifecycle Methods
-        protected override void OnInitialized()
+        // --- CHANGE 1: Change OnInitialized to async and load the files ---
+        protected override async Task OnInitializedAsync()
         {
-            // 🚩 FIX: Set the QuestPDF license type here.
+            // 1. Setup License
             QuestPDF.Settings.License = LicenseType.Community;
 
-            // 🚩 NEW: Load the company logo into a byte array
+            // 2. Load Logo
             var fullPath = Path.Combine(WebHostEnvironment.WebRootPath, LogoPath);
             if (File.Exists(fullPath))
             {
                 try
                 {
-                    pcaLogoBytes = File.ReadAllBytes(fullPath);
+                    pcaLogoBytes = await File.ReadAllBytesAsync(fullPath);
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"ERROR loading company logo: {ex.Message}");
-                    // Keep pcaLogoBytes as null, the fallback text will be used.
                 }
             }
-            else
-            {
-                Console.WriteLine($"WARNING: Company logo file not found at: {fullPath}");
-            }
 
+            // 3. NEW: Load the Company Lists from text files
+            // This ensures the MasterLists are populated BEFORE the user clicks the input
+            _receivedFromMasterList = await LoadCompanyList(ReceivedFromListPath);
+            _receivedForMasterList = await LoadCompanyList(ReceivedForListPath);
+
+            // 4. Default Timestamp
             if (grnModel.ArrivalTimestamp == null)
             {
                 grnModel.ArrivalTimestamp = DateTime.Now;
             }
         }
+        //protected override void OnInitialized()
+        //{
+        //    // 🚩 FIX: Set the QuestPDF license type here.
+        //    QuestPDF.Settings.License = LicenseType.Community;
+
+        //    // 🚩 NEW: Load the company logo into a byte array
+        //    var fullPath = Path.Combine(WebHostEnvironment.WebRootPath, LogoPath);
+        //    if (File.Exists(fullPath))
+        //    {
+        //        try
+        //        {
+        //            pcaLogoBytes = File.ReadAllBytes(fullPath);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            Console.WriteLine($"ERROR loading company logo: {ex.Message}");
+        //            // Keep pcaLogoBytes as null, the fallback text will be used.
+        //        }
+        //    }
+        //    else
+        //    {
+        //        Console.WriteLine($"WARNING: Company logo file not found at: {fullPath}");
+        //    }
+
+        //    if (grnModel.ArrivalTimestamp == null)
+        //    {
+        //        grnModel.ArrivalTimestamp = DateTime.Now;
+        //    }
+        //}
 
         protected override async Task OnAfterRenderAsync(bool firstRender)
         {
@@ -100,6 +144,48 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
             {
                 await JSRuntime.InvokeVoidAsync("focusElement", inputElement);
                 isFirstRender = false;
+            }
+        }
+
+        // --- Missing Event Handler Methods (Fixes your CS0103 errors) ---
+
+        protected async Task OnReceivedFromNewCompanyEntered(string newCompanyName)
+        {
+            await SaveNewCompany(newCompanyName, ReceivedFromListPath, _receivedFromMasterList);
+            Console.WriteLine($"New ReceivedFrom company saved: {newCompanyName}");
+        }
+
+        protected async Task OnReceivedForNewCompanyEntered(string newCompanyName)
+        {
+            await SaveNewCompany(newCompanyName, ReceivedForListPath, _receivedForMasterList);
+            Console.WriteLine($"New ReceivedFor company saved: {newCompanyName}");
+        }
+
+        private async Task SaveNewCompany(string companyName, string fileName, List<string> masterList)
+        {
+            var cleanName = companyName.Trim();
+            if (string.IsNullOrWhiteSpace(cleanName)) return;
+
+            // Check if it's already in the in-memory list (case-insensitive check)
+            if (masterList.Any(c => c.Equals(cleanName, StringComparison.OrdinalIgnoreCase))) return;
+
+            var filePath = Path.Combine(WebHostEnvironment.ContentRootPath, fileName);
+
+            try
+            {
+                // Append the new company name to the file with a newline
+                await File.AppendAllTextAsync(filePath, cleanName + Environment.NewLine);
+
+                // Update the in-memory list and re-sort it for immediate use
+                masterList.Add(cleanName);
+                masterList.Sort(StringComparer.OrdinalIgnoreCase);
+
+                // Notify Blazor to re-render the page to update the dropdowns
+                await InvokeAsync(StateHasChanged);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error saving new company '{cleanName}' to {fileName}: {ex.Message}");
             }
         }
 
@@ -259,17 +345,17 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
                 TruckRegNo = "BM 31 GKZN",
 
                 ProductLines = new List<GrnProductLine>
+            {
+                new GrnProductLine
                 {
-                    new GrnProductLine
-                    {
-                        Product = "GRAPES",
-                        DeliveryNoteNo = "106203 05",
-                        QuantityOnDeliveryNote = 5,
-                        QuantityReceived = 5,
-                        Dims = "HIGH CUBE PALLET",
-                        Temperature = 9.7M
-                    }
-                },
+                    Product = "GRAPES",
+                    DeliveryNoteNo = "106203 05",
+                    QuantityOnDeliveryNote = 5,
+                    QuantityReceived = 5,
+                    Dims = "HIGH CUBE PALLET",
+                    Temperature = 9.7M
+                }
+            },
                 ScannedDocumentReferences = new List<string>(),
 
                 IsDriversIdentityChecked = true,
@@ -590,6 +676,45 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
 
             return document.GeneratePdf();
         }
+
+        // --- CHANGE 2: Read Lookup files ---
+        private async Task<List<string>> LoadCompanyList(string fileName)
+        {
+            // We use ContentRootPath to match where you are saving them in SaveNewCompany
+            var filePath = Path.Combine(WebHostEnvironment.ContentRootPath, fileName);
+
+            var list = new List<string>();
+
+            if (File.Exists(filePath))
+            {
+                try
+                {
+                    var lines = await File.ReadAllLinesAsync(filePath);
+                    list = lines.Where(line => !string.IsNullOrWhiteSpace(line))
+                                .Select(line => line.Trim())
+                                .Distinct(StringComparer.OrdinalIgnoreCase) // Remove duplicates
+                                .OrderBy(x => x) // Sort alphabetically
+                                .ToList();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error reading company list {fileName}: {ex.Message}");
+                }
+            }
+
+            return list;
+        }
+
+        //// --- NEW METHOD: Handle Enter Key ---
+        //protected async Task HandleKeyDown(KeyboardEventArgs e)
+        //{
+        //    // If the user hits Enter and there is a match in the list, select the top one.
+        //    if (e.Key == "Enter" && ShowDropdown && FilteredList.Any())
+        //    {
+        //        var bestMatch = FilteredList.First();
+        //        await SelectCompany(bestMatch);
+        //    }
+        //}
 
     }
 }
