@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.JSInterop;
-using PCA_Logistics_WareHouse_Web_App.Data;
+using PcaLogWarehouse.Shared;
 using PCA_Logistics_WareHouse_Web_App.Shared;
 using PCA_Logistics_WareHouse_Web_App.Components.Shared;
 using QuestPDF.Fluent;

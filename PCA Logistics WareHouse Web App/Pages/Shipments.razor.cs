@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using System.Text.Json;
-using PCA_Logistics_WareHouse_Web_App.Data;
+using PcaLogWarehouse.Shared;
 
 // Note: Ensure the namespace matches your project structure
 namespace PCA_Logistics_WareHouse_Web_App.Components.Pages;

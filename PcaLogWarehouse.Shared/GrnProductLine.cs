@@ -1,4 +1,4 @@
-﻿namespace PCA_Logistics_WareHouse_Web_App.Data;
+﻿namespace PcaLogWarehouse.Shared;
 
 public class GrnProductLine
 {

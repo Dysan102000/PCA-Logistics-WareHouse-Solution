@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
-using PCA_Logistics_WareHouse_Web_App.Data;
+using PcaLogWarehouse.Shared;
 
 namespace PCA_Logistics_WareHouse_Web_App
 {
@@ -13,7 +13,7 @@ namespace PCA_Logistics_WareHouse_Web_App
             // Add services to the container.
             builder.Services.AddRazorPages();
             builder.Services.AddServerSideBlazor();
-            builder.Services.AddSingleton<WeatherForecastService>();
+            //builder.Services.AddSingleton<WeatherForecastService>();
 
             builder.WebHost.UseUrls("http://0.0.0.0:5283");
 

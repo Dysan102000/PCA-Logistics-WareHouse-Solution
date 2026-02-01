@@ -5,6 +5,10 @@ VisualStudioVersion = 17.14.36616.10
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PCA Logistics WareHouse Web App", "PCA Logistics WareHouse Web App\PCA Logistics WareHouse Web App.csproj", "{3BEEDABE-23A1-49DA-852C-B14AB5CA83AB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PcaLogWarehouse.Client", "PcaLogWarehouse.Client\PcaLogWarehouse.Client.csproj", "{D747A6BE-3870-D2C8-087E-1AEDED8614FD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PcaLogWarehouse.Shared", "PcaLogWarehouse.Shared\PcaLogWarehouse.Shared.csproj", "{F7E01DA7-3B63-40A1-29D8-D322294EC86C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{3BEEDABE-23A1-49DA-852C-B14AB5CA83AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3BEEDABE-23A1-49DA-852C-B14AB5CA83AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3BEEDABE-23A1-49DA-852C-B14AB5CA83AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D747A6BE-3870-D2C8-087E-1AEDED8614FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D747A6BE-3870-D2C8-087E-1AEDED8614FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D747A6BE-3870-D2C8-087E-1AEDED8614FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D747A6BE-3870-D2C8-087E-1AEDED8614FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F7E01DA7-3B63-40A1-29D8-D322294EC86C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7E01DA7-3B63-40A1-29D8-D322294EC86C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7E01DA7-3B63-40A1-29D8-D322294EC86C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7E01DA7-3B63-40A1-29D8-D322294EC86C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
