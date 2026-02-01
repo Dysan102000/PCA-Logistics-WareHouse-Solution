@@ -429,7 +429,7 @@ namespace PCA_Logistics_WareHouse_Web_App.Components.Pages
 
         public void SaveGrnIfNotExist(GrnModel pGrnToSave)
         {
-            const string filePath = "GrnRecords.json";
+            const string filePath = "/app/data/GrnRecords.json";
             try
             {
                 string jsonString = JsonSerializer.Serialize(pGrnToSave);
